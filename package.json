@@ -2,7 +2,7 @@
   "name": "examplint",
   "version": "0.1.0",
   "description": "Validates every example in an OpenAPI spec against its declared schema — examples-versus-schema conformance with concrete fix suggestions, offline and dependency-free.",
-  "author": "JaydenCJ",
+  "author": "JaydenCJ <aisingioro.kiyon@gmail.com>",
   "license": "MIT",
   "type": "module",
   "bin": {
