@@ -1,0 +1,183 @@
+# A small but realistic OpenAPI 3.0 document whose examples all conform.
+# `examplint check examples/petstore.yaml` exits 0 with zero findings;
+# the test suite and scripts/smoke.sh both assert that this stays true.
+openapi: 3.0.3
+info:
+  title: Petstore
+  version: 1.0.0
+  description: A classic petstore, with examples that match their schemas.
+paths:
+  /pets:
+    get:
+      summary: List pets
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of pets to return.
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 100
+            default: 20
+          example: 25
+        - $ref: '#/components/parameters/PageToken'
+      responses:
+        '200':
+          description: A paged array of pets.
+          headers:
+            X-Rate-Limit-Remaining:
+              $ref: '#/components/headers/RateLimitRemaining'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Pet'
+              examples:
+                two-pets:
+                  summary: A typical first page
+                  value:
+                    - id: 1
+                      name: Mochi
+                      status: available
+                      tags: [fluffy]
+                    - id: 2
+                      name: Pretzel
+                      status: sold
+                      tags: []
+    post:
+      summary: Create a pet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewPet'
+            example:
+              name: Biscuit
+              status: available
+      responses:
+        '201':
+          description: The created pet.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+              example:
+                id: 3
+                name: Biscuit
+                status: available
+  /pets/{petId}:
+    get:
+      summary: Fetch one pet
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+          example: 42
+      responses:
+        '200':
+          description: The pet.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+              examples:
+                found:
+                  $ref: '#/components/examples/MochiThePet'
+        '404':
+          description: No such pet.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: 404
+                message: pet not found
+components:
+  parameters:
+    PageToken:
+      name: pageToken
+      in: query
+      description: Opaque cursor returned by the previous page.
+      schema:
+        type: string
+        pattern: '^[a-z0-9]{8}$'
+      example: a1b2c3d4
+  headers:
+    RateLimitRemaining:
+      description: Requests left in the current window.
+      schema:
+        type: integer
+        minimum: 0
+      example: 57
+  examples:
+    MochiThePet:
+      summary: A pet in good standing
+      value:
+        id: 1
+        name: Mochi
+        status: available
+        tags: [fluffy]
+  schemas:
+    Pet:
+      type: object
+      required: [id, name, status]
+      additionalProperties: false
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+        name:
+          type: string
+          minLength: 1
+          maxLength: 40
+        status:
+          type: string
+          enum: [available, pending, sold]
+        tags:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+        adoptedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2026-05-01T09:30:00Z'
+      example:
+        id: 7
+        name: Clover
+        status: pending
+        tags: [gentle, senior]
+    NewPet:
+      type: object
+      required: [name, status]
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 40
+        status:
+          type: string
+          enum: [available, pending, sold]
+        tags:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string

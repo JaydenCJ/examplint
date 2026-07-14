@@ -1,0 +1,115 @@
+# The same petstore after six months of "harmless" edits: every drifted
+# example here is real-world drift examplint is built to catch. Running
+# `examplint check examples/drifted.yaml` exits 1 and suggests a fix for
+# each finding. The seeded drift, top to bottom:
+#   1. `example: "25"`  — the integer got quoted            -> E101
+#   2. `status: avialable` — a typo'd enum value            -> E102
+#   3. `id: "2"`        — another quoted integer            -> E101
+#   4. `taggs: []`      — a typo'd property name            -> E107
+#   5. POST example lost its required `status`              -> E106
+#   6. `adoptedAt: yesterday` — not a date-time             -> W203
+#   7. Pet schema example: `id: 0` under `minimum: 1`       -> E103
+openapi: 3.0.3
+info:
+  title: Petstore (drifted)
+  version: 1.0.1
+  description: The petstore whose examples quietly rotted.
+paths:
+  /pets:
+    get:
+      summary: List pets
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 100
+          example: "25"
+      responses:
+        '200':
+          description: A paged array of pets.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Pet'
+              examples:
+                two-pets:
+                  summary: A typical first page
+                  value:
+                    - id: 1
+                      name: Mochi
+                      status: avialable
+                      tags: [fluffy]
+                    - id: "2"
+                      name: Pretzel
+                      status: sold
+                      taggs: []
+    post:
+      summary: Create a pet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewPet'
+            example:
+              name: Biscuit
+      responses:
+        '201':
+          description: The created pet.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+              example:
+                id: 3
+                name: Biscuit
+                status: available
+                adoptedAt: yesterday
+components:
+  schemas:
+    Pet:
+      type: object
+      required: [id, name, status]
+      additionalProperties: false
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+        name:
+          type: string
+          minLength: 1
+          maxLength: 40
+        status:
+          type: string
+          enum: [available, pending, sold]
+        tags:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+        adoptedAt:
+          type: string
+          format: date-time
+          nullable: true
+      example:
+        id: 0
+        name: Clover
+        status: pending
+    NewPet:
+      type: object
+      required: [name, status]
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 40
+        status:
+          type: string
+          enum: [available, pending, sold]
